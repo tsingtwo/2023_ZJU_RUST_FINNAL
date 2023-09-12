@@ -23,6 +23,7 @@ impl volo_gen::volo::example::ItemService for S {
 			resp.op = "set".to_string().into();
 			let k = _req.key.to_string();
 			let v = _req.val.to_string();
+			println!("set {}, {}", k.clone(), v.clone());
 			let  mut is_exist = true;
 			if self.kav.lock().unwrap().get(&k) == None {
 				is_exist = false;
@@ -46,20 +47,24 @@ impl volo_gen::volo::example::ItemService for S {
 				}
 			}
 		}else if _req.op == "del".to_string(){
+			println!("del1");
 			resp.op = "del".to_string().into();
 			let k = _req.key.to_string();
-			match self.kav.lock().unwrap().get(&k) {
+			match self.kav.lock().unwrap().remove(&k) {
 				Some(t)=>{
-					self.kav.lock().unwrap().remove(t);
+					println!("del2.1.1");
 					resp.status = true;
 				}
 				None=>{
+					println!("del2.2");
 					resp.status = false;
 				}	
 			}
 		}else if _req.op == "ping".to_string(){
+			println!("ping1");
 			resp.op = "ping".to_string().into();
 			resp.status = true;
+			println!("ping2");
 		}else {
 			panic!("INVALID OP! ");
 		}
