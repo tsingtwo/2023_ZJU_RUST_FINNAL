@@ -2,11 +2,12 @@ use lazy_static::lazy_static;
 use pilota::lazy_static;
 use volo_gen::volo::example::GetItemRequest;
 use std::net::SocketAddr;
-
+use volo_example::FilterLayer;
 lazy_static! {
     static ref CLIENT: volo_gen::volo::example::ItemServiceClient = {
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         volo_gen::volo::example::ItemServiceClientBuilder::new("volo-example")
+            .layer_outer(FilterLayer)
             .address(addr)
             .build()
     };

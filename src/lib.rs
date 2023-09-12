@@ -1,6 +1,6 @@
 #![feature(impl_trait_in_assoc_type)]
 use std::{collections::HashMap, sync::Mutex};
-
+use anyhow::anyhow;
 pub struct S{
 	kav: Mutex<HashMap<String,String>>
 }
@@ -9,6 +9,7 @@ impl S {
 		S { kav: Mutex::new(HashMap::new()) }
 	}
 }
+#[allow(unused)]
 #[volo::async_trait]
 impl volo_gen::volo::example::ItemService for S {
     // 这部分是我们需要增加的代码
@@ -69,5 +70,38 @@ impl volo_gen::volo::example::ItemService for S {
 			panic!("INVALID OP! ");
 		}
 		Ok(resp)
+    }
+}
+
+pub struct FilterLayer;
+impl<S> volo::Layer<S> for FilterLayer {
+    type Service = FilterService<S>;
+
+    fn layer(self, inner: S) -> Self::Service {
+        FilterService(inner)
+    }
+}
+#[derive(Clone)]
+pub struct FilterService<S>(S);
+#[volo::service]
+impl<Cx, Req, S> volo::Service<Cx, Req> for FilterService<S>
+where
+    Req: std::fmt::Debug + Send + 'static,
+    S: Send + 'static + volo::Service<Cx, Req> + Sync,
+    Cx: Send + 'static,
+	anyhow::Error: Into<S::Error>,
+{
+    async fn call(&self, cx: &mut Cx, req: Req) -> Result<S::Response, S::Error> {
+        let info = format!("{req:?}");
+		let mut ill = true;
+		if info.contains("尊尼获嘉") {
+			ill = false;
+		} 
+		if ill {
+			let resp =self.0.call(cx, req).await;
+			resp
+		}else {
+			Err(anyhow!("给你房管你给我说话").into())
+		}
     }
 }
