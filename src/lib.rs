@@ -74,19 +74,28 @@ impl volo_gen::volo::example::ItemService for S {
 			let k = _req.key.to_string();
 			let (mut tx, mut rx) = broadcast::channel(16);
 			let mut is_exist = true;
-			resp.op = "subsscribe".to_string().into();
+			resp.op = "subscribe".to_string().into();
 			println!("here1");
-			match self.channels.lock().unwrap().get(&k){
-				Some(tx)=>{
-					rx = tx.subscribe();
-				},
-				None=>{
-					is_exist = false;
-				}
+			// match self.channels.lock().unwrap().get(&k){
+			// 	Some(tx)=>{
+			// 		rx = tx.subscribe();
+			// 	},
+			// 	None=>{
+			// 		is_exist = false;
+			// 	}
+			// }
+			if let Some(tx) =  self.channels.lock().unwrap().get(&k)  {
+				rx = tx.subscribe();
+				
+			} else {
+				is_exist = false;
+				
 			}
 			println!("here2");
 			if is_exist{
+				println!("here3.0");
 				let mes = rx.recv().await;
+				println!("here3.0.1");
 				match  mes {
 					Ok(t)=>{
 						resp.val = t.clone().into();
@@ -96,9 +105,13 @@ impl volo_gen::volo::example::ItemService for S {
 						resp.status = false; 
 					}
 				}
+				println!("here3.0.2");
 			}else {
+				println!("here3.1");
 				self.channels.lock().unwrap().insert(k, tx);
+				println!("here3.1.0");
 				let mes = rx.recv().await;
+				println!("here3.1.1");
 				match mes {
 					Ok(t)=>{
 						resp.val = t.clone().into();
@@ -108,6 +121,7 @@ impl volo_gen::volo::example::ItemService for S {
 						resp.status = false;
 					}
 				}
+				println!("here3.1.2");
 			}
 			
 		}else if _req.op == "publish".to_string(){
