@@ -60,6 +60,20 @@ async fn main() {
             val:" ".into(),
         };
         println!("{}, {}, {}", req.clone().op, req.clone().key, req.clone().val);
+    }else if opcode == "subscribe".to_string() {
+        req = GetItemRequest{
+            op:"subscribe".into(),
+            key:args.remove(1).clone().into(),
+            val:" ".into(),
+        };
+        println!("{}, {}, {}", req.clone().op, req.clone().key, req.clone().val);
+    }else if opcode == "publish".to_string() {
+        req = GetItemRequest{
+            op:"publish".into(),
+            key:args.remove(1).clone().into(),
+            val:args.remove(1).clone().into(),
+        };
+        println!("{}, {}, {}", req.clone().op, req.clone().key, req.clone().val);
     }else{
         println!("Unkown command");
     }
@@ -91,6 +105,19 @@ async fn main() {
                     println!("pong");
                 }else {
                     println!("FAILED");
+                }
+            }else if info.op=="subcribe".to_string() {
+                if info.status{
+                    println!("{}", info.val);
+                }else {
+                    println!("NO PUBLISH");
+                }
+            }else if info.op=="publish".to_string() {
+                let msg = info.val.clone().to_string();
+                if info.status{
+                    println!("THE NUMBERR IS {}", msg);
+                }else {
+                    println!("NOT FOUND");
                 }
             }
             

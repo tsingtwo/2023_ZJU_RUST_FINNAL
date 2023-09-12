@@ -1,12 +1,17 @@
 #![feature(impl_trait_in_assoc_type)]
 use std::{collections::HashMap, sync::Mutex};
 use anyhow::anyhow;
+use pilota::FastStr;
+use tokio::sync::broadcast;
+use tokio::sync::broadcast::Sender;
+use core::result::Result;
 pub struct S{
-	kav: Mutex<HashMap<String,String>>
+	kav: Mutex<HashMap<String,String>>,
+	pub channels: Mutex<HashMap<String, Sender<String>>>,
 }
 impl S {
 	pub fn new()->S{
-		S { kav: Mutex::new(HashMap::new()) }
+		S { kav: Mutex::new(HashMap::new()), channels:Mutex::new(HashMap::new())}
 	}
 }
 #[allow(unused)]
@@ -55,17 +60,75 @@ impl volo_gen::volo::example::ItemService for S {
 				Some(t)=>{
 					println!("del2.1.1");
 					resp.status = true;
-				}
+				},
 				None=>{
 					println!("del2.2");
 					resp.status = false;
 				}	
 			}
 		}else if _req.op == "ping".to_string(){
-			println!("ping1");
 			resp.op = "ping".to_string().into();
 			resp.status = true;
-			println!("ping2");
+		}else if _req.op == "subscribe".to_string(){
+			println!("here0");
+			let k = _req.key.to_string();
+			let (mut tx, mut rx) = broadcast::channel(16);
+			let mut is_exist = true;
+			resp.op = "subsscribe".to_string().into();
+			println!("here1");
+			match self.channels.lock().unwrap().get(&k){
+				Some(tx)=>{
+					rx = tx.subscribe();
+				},
+				None=>{
+					is_exist = false;
+				}
+			}
+			println!("here2");
+			if is_exist{
+				let mes = rx.recv().await;
+				match  mes {
+					Ok(t)=>{
+						resp.val = t.clone().into();
+						resp.status = true;
+					},
+					Err(e)=>{
+						resp.status = false; 
+					}
+				}
+			}else {
+				self.channels.lock().unwrap().insert(k, tx);
+				let mes = rx.recv().await;
+				match mes {
+					Ok(t)=>{
+						resp.val = t.clone().into();
+						resp.status = false;
+					},
+					Err(e) => {
+						resp.status = false;
+					}
+				}
+			}
+			
+		}else if _req.op == "publish".to_string(){
+			resp.op = "publish".to_string().into();
+			let k = _req.key.to_string();
+			match self.channels.lock().unwrap().get(&k) {
+				Some(tx)=>{
+					match tx.send(_req.val.to_string()) {
+						Ok(n) => {
+							resp.status = true;
+							resp.val = FastStr::from((n as u8).to_string());
+						},
+						Err(_) => {
+							resp.status = false;
+						}
+					}
+				},
+				None=>{
+					resp.status = false;
+				}
+			}
 		}else {
 			panic!("INVALID OP! ");
 		}
