@@ -11,6 +11,14 @@ pub struct S{
 }
 impl S {
 	pub fn new()->S{
+		// let mut f = OpenOptions::new()
+        //                      .read(true)
+        //                     .write(true)
+        //                     .create(true)
+        //                     .append(true)
+        //                     .open("LogFile.txt").unwrap();
+		// let s = f.read_line().split(" ").map(|t| t.to_string()).collect();
+
 		S { kav: Mutex::new(HashMap::new()), channels:Mutex::new(HashMap::new())}
 	}
 }
@@ -38,11 +46,15 @@ impl volo_gen::volo::example::ItemService for S {
 				self.kav.lock().unwrap().insert(k, v);
 				resp.status = true;
 			}else{
-				resp.status = false;
+				// resp.status = false;
+				self.kav.lock().unwrap().remove(&k);
+				self.kav.lock().unwrap().insert(k, v);
+				resp.status = true;
 			}
 		}else if _req.op == "get".to_string() {
 			resp.op = "get".to_string().into();
 			let k = _req.key.to_string();
+			println!("get {}", k.clone());
 			match self.kav.lock().unwrap().get(&k) {
 				Some(t)=>{
 					resp.val = t.clone().into();
